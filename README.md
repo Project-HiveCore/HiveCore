@@ -8,14 +8,14 @@ A 32-bit RISC-V, out-of-order, superscalar CPU core.
 .
 ├── arch
 │   ├── isa 	# ISA documentation
-│   └── spec	# Architecture speficiation documents
+│   └── spec	# Architecture speficiations
 │
-└── core
-    ├── <module>  
-    │   ├── sim     # Testbenches and verification scripts
-    │   ├── spec    # Modules specifications
-    │   └── src     # SV Module Code
-    │
-    ├── pkg	# SV Packages
-    └── tpl	# SV Starter Templates
+├── core
+│   ├── <module>
+│   │   ├── sim	    # Testbenches and verification scripts
+│   │   ├── spec    # Module specifications
+│   │   └── src     # Module code
+│   └── pkg
+│
+└── tpl	   # Templates
 ```
