@@ -1,6 +1,14 @@
 # HiveCore
 
-A 32-bit RISC-V, out-of-order, superscalar CPU core.
+A 64-bit RISC-V, out-of-order, superscalar CPU core.
+
+## Extensions
+
+**Planned:** M (Integer Mult/Div), F (Single-Precision FP), A (Atomic), D (Double-Precision FP)
+
+**In-Progess:** I (Base Integer)
+
+**Implemented:** 
 
 ## Directories
 
@@ -15,7 +23,8 @@ A 32-bit RISC-V, out-of-order, superscalar CPU core.
 │   │   ├── sim	    # Testbenches and verification scripts
 │   │   ├── spec    # Module specifications
 │   │   └── src     # Module code
-│   └── pkg
+│   │
+│   └── pkg    # Top level packages
 │
 └── tpl	   # Templates
 ```
