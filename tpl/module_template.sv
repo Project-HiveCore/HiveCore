@@ -8,6 +8,8 @@
 *                  
 ********************************************************/ 
 
+import CORE_PKG::*;
+
 `ifndef <MODULE_NAME>
 `define <MODULE_NAME>
 
