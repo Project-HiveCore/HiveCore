@@ -1,1 +1,2 @@
 https://github.com/riscv-software-src/riscv-tests
+https://msyksphinz-self.github.io/riscv-isadoc/#_rv32i_rv64i_instructions
