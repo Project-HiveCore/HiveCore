@@ -14,7 +14,8 @@
 module instr_q_mem
     #(
         parameter DEPTH=8,
-        parameter DATA_WIDTH=32
+        parameter DATA_WIDTH=32,
+        localparam ADDR_WIDTH = $clog2(DEPTH)
     )
     (
         input                    clk,
@@ -37,10 +38,6 @@ module instr_q_mem
         output [DATA_WIDTH-1:0] rd_data_0,
         output [DATA_WIDTH-1:0] rd_data_1
     );
-
-    // ========= Parameters =========
-    localparam ADDR_WIDTH = $clog2(DEPTH);
-    
 
     // ========= Signal Definitions =========
     logic [DEPTH-1:0] [DATA_WIDTH-1:0] mem;         // flop array

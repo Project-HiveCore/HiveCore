@@ -14,7 +14,8 @@
 module instr_q_fifo
     #(
         parameter DEPTH=8,
-        parameter DATA_WIDTH=32 // remove when the instruction struct is created
+        parameter DATA_WIDTH=32, // remove when the instruction struct is created
+        localparam ADDR_WIDTH = $clog2(DEPTH)
     )
     (
         input logic                   rstn,
@@ -40,8 +41,6 @@ module instr_q_fifo
         output logic                  almost_empty,
         output logic                  empty
     );
-
-    localparam ADDR_WIDTH = $clog2(DEPTH);
 
     // Verify the input parameter depth
     // if (!(DEPTH inside {2, 4, 8, 16, 32})) $error("Invalid depth parameter. Must be a power of 2 less than or equal to 32."); // iverilog does not support "inside" keyword
