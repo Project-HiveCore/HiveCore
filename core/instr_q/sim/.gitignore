@@ -1,4 +1,8 @@
 # Ignore everything listed here
+__pycache__
+sim_build
+*.ini
+*.xml
 
 # Except this file
 !.gitignore

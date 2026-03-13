@@ -1,26 +1,21 @@
-TESTNAME=default
+# Makefile for running cocotb testbenches
 
-SRC_DIR=../../../src/instruction_queue/
+# defaults
+SIM ?= icarus
+TOPLEVEL_LANG ?= verilog
 
-MEM_SRC_FILES=$(SRC_DIR)instr_q_mem.sv
-MEM_SIM_FILES=tb_instr_q_mem.sv
+VERILOG_SOURCES += ../src/instr_q_mem.sv
+VERILOG_SOURCES += ../src/instr_q_fifo.sv
 
-FIFO_SRC_FILES=$(SRC_DIR)instr_q_mem.sv $(SRC_DIR)instr_q_fifo.sv
-FIFO_SIM_FILES=tb_instr_q_fifo.sv
+# Name of the toplevel module
+COCOTB_TOPLEVEL = instr_q_fifo
 
-sim_mem:
-	IVERILOG_DUMPER=fst
-	iverilog '-Wall' '-g2012' $(MEM_SRC_FILES) $(MEM_SIM_FILES) && vvp a.out -fst +testname=$(TESTNAME)
+# Basename of the Python test file(s)
+COCOTB_TEST_MODULES = tests_instr_q_fifo
 
-sim_fifo:
-	IVERILOG_DUMPER=fst
-	iverilog '-Wall' '-g2012' $(FIFO_SRC_FILES) $(FIFO_SIM_FILES) && vvp a.out -fst +testname=$(TESTNAME)
+# SIM_ARGS ="-gDEPTH=4 -gDATA_WIDTH=32"
 
-wave:
-	GDK_BACKEND=x11 gtkwave dump.fst wave_conf.sav
+WAVES = 1
 
-clean:
-	rm -rf 		\
-		*.out 	\
-		*.fst 	
-
+# include cocotb's make rules to take care of the simulator setup
+include $(shell cocotb-config --makefiles)/Makefile.sim
