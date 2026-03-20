@@ -55,22 +55,21 @@
 
 | Input Port | Logic Level | Description                                                  |
 | ---------- | ----------- | ------------------------------------------------------------ |
-| resetn     | Low         | Power-on reset                                               |
-| flush      | High        | Flag to flush the FIFO (eg. on misprediction)                |
-| clk        | n/a         | Clocksignal for both read and write sides                    |
-| instr0_in  | n/a         | Firstinstruction to write (in program order)                 |
-| instr1_in  | n/a         | Secondinstruction to write (in program order)                |
-| wr0_en     | High        | Indicates the producer intends to write to port/pointer 0    |
-| wr1_en     | High        | Indicates the producer intends to write to port/pointer 1    |
-| rd0_en     | High        | Indicates the consumer is reading the data at port/pointer 0 |
-| rd1_en     | High        | Indicates the consumer is reading the data at port/pointer 1 |
+| rstn       | Low         | Power-on reset                                               |
+| clk        | n/a         | Clock signal for both read and write sides                   |
+| wr_data_0  | n/a         | First instruction to write (in program order)                |
+| wr_data_1  | n/a         | Second instruction to write (in program order)               |
+| wr_en_0    | High        | Indicates the producer intends to write to port/pointer 0    |
+| wr_en_1    | High        | Indicates the producer intends to write to port/pointer 1    |
+| rd_en_0    | High        | Indicates the consumer is reading the data at port/pointer 0 |
+| rd_en_1    | High        | Indicates the consumer is reading the data at port/pointer 1 |
 
 *NOTE*: Asserting wr0/1_en when full or almost full flags are set will cause the FIFO to ignore the write possibly causing data loss for the producer. Asserting rd0/1_en when empty or almost_empty flags are set will not cause data loss or error in the FIFO, but undefined/junk data will be present on the read data lines which can cause errors for the consumer. Check **Functions** section for more details.
 
 | Output			Port | **Logic Level** | **Description**                             |
 | ------------- | --------------------- | ------------------------------------------------- |
-| instr0_out    | n/a                   | Data for the first instruction to be read         |
-| instr1_out    | n/a                   | Data for the second instruction to be read        |
+| rd_data_0     | n/a                   | Data for the first instruction to be read         |
+| rd_data_1     | n/a                   | Data for the second instruction to be read        |
 | empty         | High                  | Indicates the FIFO has no readable data           |
 | almost_empty  | High                  | Indicates the FIFO has 1 readable data at slot 0  |
 | full          | High                  | Indicates the FIFO has no writable space          |
