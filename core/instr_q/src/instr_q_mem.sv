@@ -2,10 +2,11 @@
 * Module Name    : instr_q_mem
 * Author         : Jacob Dudik
 * Creation Date  : 09/07/2025
-* Last edit Date : 02/07/2026
+* Last edit Date : 03/24/2026
 * Description    : Register based memory unit for the
-*                  Instruction Queue FIFO with 
-*                  parameterizable size
+*                  Instruction Queue FIFO with
+*                  parameterizable numbers of rd/wr
+*                  ports and data width
 ********************************************************/
 
 `ifndef INSTR_Q_MEM
@@ -13,71 +14,73 @@
 
 module instr_q_mem
     #(
-        parameter DEPTH=8,
-        parameter DATA_WIDTH=32,
-        localparam ADDR_WIDTH = $clog2(DEPTH)
+        parameter  int RD_PORTS     = 4,
+        parameter  int WR_PORTS     = 4,
+        parameter  int DEPTH        = 8,
+        parameter  int DATA_WIDTH   = 32,
+        localparam int AddrWidth    = $clog2(DEPTH)
     )
     (
-        input                    clk,
+        input                   clk,
         // no reset needed, fifo handles what slots are valid
 
         // ========= Write Side =========
-        input                   wr_en_0,
-        input                   wr_en_1,
-        
-        input  [ADDR_WIDTH-1:0] wr_addr_0,
-        input  [ADDR_WIDTH-1:0] wr_addr_1,
-
-        input  [DATA_WIDTH-1:0] wr_data_0,
-        input  [DATA_WIDTH-1:0] wr_data_1,
+        input                   wr_en  [WR_PORTS],
+        input  [AddrWidth-1:0] wr_addr[WR_PORTS],
+        input  [DATA_WIDTH-1:0] wr_data[WR_PORTS],
 
         // ========= Read Side =========
-        input  [ADDR_WIDTH-1:0] rd_addr_0,
-        input  [ADDR_WIDTH-1:0] rd_addr_1,
-
-        output [DATA_WIDTH-1:0] rd_data_0,
-        output [DATA_WIDTH-1:0] rd_data_1
+        input  [AddrWidth-1:0] rd_addr[RD_PORTS],
+        output [DATA_WIDTH-1:0] rd_data[RD_PORTS]
     );
 
+    // ========= Parameter Checks =========
+    if (RD_PORTS > DEPTH) $error("Invalid number of read ports. Must be less than depth.");
+    if (WR_PORTS > DEPTH) $error("Invalid number of write ports. Must be less than depth.");
+    if (!(DEPTH inside {2, 4, 8, 16, 32, 64, 128, 256}))
+        $error("Invalid depth parameter. Must be a power of 2 less than or equal to 256.");
+
     // ========= Signal Definitions =========
-    logic [DEPTH-1:0] [DATA_WIDTH-1:0] mem;         // flop array
-    logic [DEPTH-1:0] [DATA_WIDTH-1:0] mem_wr_data; // input lines
-    logic [DEPTH-1:0]                  mem_wr_en;   // enable lines
+    logic [DEPTH-1:0] [DATA_WIDTH-1:0]  mem;         // flop array
+    logic [DEPTH-1:0] [DATA_WIDTH-1:0]  mem_wr_data; // input lines
+    logic [DEPTH-1:0] [WR_PORTS-1:0]    mem_wr_en;   // each addr has one enable bit per write port
 
-    // Write port specific enable lines
-    logic [DEPTH-1:0] mem_wr_en_0;
-    logic [DEPTH-1:0] mem_wr_en_1; 
-    
+    // ========= Write Enable Decoders =========
+    always_comb begin
+        mem_wr_en = '0;
 
-    // ========= Logic =========
-
-    // Decode write pointers to enable the flop at each write addr
-    always_comb begin : wr_addr_decoder_0
-        mem_wr_en_0 = '0;
-        mem_wr_en_0[wr_addr_0] = wr_en_0 ? '1 : '0;
+        for (int wr_port = 0; wr_port < WR_PORTS; wr_port++) begin
+            // Set the port's write enable bit for the specified address
+            mem_wr_en[wr_addr[wr_port]][wr_port] = wr_en[wr_port];
+        end
     end
 
-    always_comb begin : wr_addr_decoder_1
-        mem_wr_en_1 = '0;
-        mem_wr_en_1[wr_addr_1] = wr_en_1 ? '1 : '0;
-    end
-
-    // Generate fifo memory as flops
-    genvar addr;
-    generate
-        for (addr = 0; addr < DEPTH; addr++) begin : gen_mem
-            assign mem_wr_en[addr] = mem_wr_en_0[addr] | mem_wr_en_1[addr];         // New data available when either enable signal set
-            assign mem_wr_data[addr] = mem_wr_en_1[addr] ? wr_data_1 : wr_data_0;   // Select the correct data based on enable
-
-            always_ff @(posedge clk) begin
-                mem[addr] <= mem_wr_en[addr] ? mem_wr_data[addr] : mem[addr];       // Store new data if enable set, otherwise keep old data
+    // ========= Write Data Select =========
+    always_comb begin
+        // One-hot mux for selecting data from write ports
+        mem_wr_data = '0;
+        for (int addr = 0; addr < DEPTH; addr++) begin
+            for (int port = 0; port < WR_PORTS; port++) begin
+                mem_wr_data[addr] |= wr_data[port] & {DATA_WIDTH{mem_wr_en[addr][port]}};
             end
         end
-    endgenerate
+    end
 
-    // Mux the mem output to get the requested data
-    assign rd_data_0 = mem[rd_addr_0];
-    assign rd_data_1 = mem[rd_addr_1];
+    // ========= Write MEM Registers =========
+    always_ff @(posedge clk) begin
+        for (int addr = 0; addr < DEPTH; addr++) begin : gen_mem
+            // If any write enable is active for this address, write the selected data; otherwise clock gate
+            mem[addr] <= |mem_wr_en[addr] ? mem_wr_data[addr] : mem[addr];
+        end
+    end
+
+    // ========= Read Mux =========
+    genvar rd_port;
+    generate
+        for (rd_port = 0; rd_port < RD_PORTS; rd_port++) begin : gen_rd_mux
+            assign rd_data[rd_port] = mem[rd_addr[rd_port]];
+        end : gen_rd_mux
+    endgenerate
 
 endmodule
 
