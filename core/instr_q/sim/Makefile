@@ -2,8 +2,10 @@
 
 SIM ?= questa
 PYTEST ?= pytest
-RUNNER ?= runner_instr_q_mem.py
+MEM_RUNNER ?= runner_instr_q_mem.py
+FIFO_RUNNER ?= runner_instr_q_fifo.py
 WAVES ?= 1
+SIM_ARGS += -svinputport=net
 
 # Optional filters:
 #   make test_mem PARAM_SET=d8_r4_w4
@@ -11,15 +13,18 @@ WAVES ?= 1
 PARAM_SET ?=
 TESTCASE ?=
 
-.PHONY: test test_mem list_params clean wave
+.PHONY: lint test mem fifo list_params clean wave
 
-test: test_mem
+lint:
+	verible-verilog-lint ../src/*
 
-test_mem:
-	SIM=$(SIM) PARAM_SET=$(PARAM_SET) TESTCASE=$(TESTCASE) WAVES=$(WAVES) $(PYTEST) -q $(RUNNER)
+test: mem fifo
 
-list_params:
-	SIM=$(SIM) PARAM_SET=list WAVES=$(WAVES) $(PYTEST) -q $(RUNNER)
+mem:
+	SIM=$(SIM) SIM_ARGS=$(SIM_ARGS) PARAM_SET=$(PARAM_SET) TESTCASE=$(TESTCASE) WAVES=$(WAVES) $(PYTEST) -q $(MEM_RUNNER)
+
+fifo:
+	SIM=$(SIM) SIM_ARGS=$(SIM_ARGS) PARAM_SET=$(PARAM_SET) TESTCASE=$(TESTCASE) WAVES=$(WAVES) $(PYTEST) -q $(FIFO_RUNNER)
 
 clean:
 	rm -rf sim_build .pytest_cache __pycache__

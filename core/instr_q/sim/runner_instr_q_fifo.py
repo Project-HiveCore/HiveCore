@@ -12,6 +12,7 @@ SRC_DIR = THIS_DIR.parent / "src"
 
 SOURCES = [
     SRC_DIR / "instr_q_mem.sv",
+    SRC_DIR / "instr_q_fifo.sv",
 ]
 
 # Run the same test cases with different parameter sets
@@ -58,7 +59,7 @@ def _sim_build_args():
 
 
 @pytest.mark.parametrize("cfg", _selected_param_sets(), ids=lambda c: c["name"])
-def test_instr_q_mem(cfg):
+def test_instr_q_fifo(cfg):
     sim = os.getenv("SIM", "questa")
     sim_build_args = _sim_build_args()
     testcase = os.getenv("TESTCASE", "").strip() or None
@@ -70,7 +71,7 @@ def test_instr_q_mem(cfg):
 
     runner.build(
         sources=[str(s) for s in SOURCES],
-        hdl_toplevel="instr_q_mem",
+        hdl_toplevel="instr_q_fifo",
         parameters=cfg["parameters"],
         build_dir=str(build_dir),
         build_args=sim_build_args,
@@ -81,8 +82,8 @@ def test_instr_q_mem(cfg):
 
     try:
         runner.test(
-            hdl_toplevel="instr_q_mem",
-            test_module="tests_instr_q_mem",
+            hdl_toplevel="instr_q_fifo",
+            test_module="tests_instr_q_fifo",
             testcase=testcase,
             waves=waves,
         )

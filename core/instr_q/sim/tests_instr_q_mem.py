@@ -107,6 +107,17 @@ def apply_writes_to_model(model, writes, data_mask):
 
 @cocotb.test()
 async def test_01_clear_and_zero_readback_all_ports(dut):
+    """
+    Description:
+        Clear all memory entries and verify zero readback on all read ports.
+    Inputs:
+        - Reset-like initialization
+        - Write 0 to every address through write port 0
+        - Set all read ports to deterministic addresses
+    Expected Outputs:
+        - Internal memory model matches all zeros
+        - Every rd_data port returns 0
+    """
     tb = InstrQMemTB(dut)
     await tb.initialize()
     await tb.clear_memory()
@@ -122,6 +133,16 @@ async def test_01_clear_and_zero_readback_all_ports(dut):
 
 @cocotb.test()
 async def test_02_single_port_full_depth_write_read(dut):
+    """
+    Description:
+        Write full depth through one port and read back each location.
+    Inputs:
+        - Sequential writes on port 0 across all addresses
+        - Per-address readback on read port 0
+    Expected Outputs:
+        - Each read equals expected model value
+        - Final full memory contents match model
+    """
     tb = InstrQMemTB(dut)
     await tb.initialize()
     await tb.clear_memory()
@@ -142,6 +163,16 @@ async def test_02_single_port_full_depth_write_read(dut):
 
 @cocotb.test()
 async def test_03_all_write_ports_unique_addresses_same_cycle(dut):
+    """
+    Description:
+        Exercise all write ports active in one cycle to unique addresses.
+    Inputs:
+        - One-cycle write on every write port
+        - Readback across all read ports
+    Expected Outputs:
+        - Memory updates at all targeted addresses
+        - Read ports return expected values from model
+    """
     tb = InstrQMemTB(dut)
     await tb.initialize()
     await tb.clear_memory()
@@ -167,6 +198,15 @@ async def test_03_all_write_ports_unique_addresses_same_cycle(dut):
 
 @cocotb.test()
 async def test_04_subset_write_ports_sparse_pattern(dut):
+    """
+    Description:
+        Drive a sparse subset of write ports over multiple cycles.
+    Inputs:
+        - Active write ports are odd-indexed ports only
+        - Address/data pattern varies by cycle and port
+    Expected Outputs:
+        - Memory model matches DUT after each cycle
+    """
     tb = InstrQMemTB(dut)
     await tb.initialize()
     await tb.clear_memory()
@@ -188,6 +228,15 @@ async def test_04_subset_write_ports_sparse_pattern(dut):
 
 @cocotb.test()
 async def test_05_all_read_ports_different_addresses(dut):
+    """
+    Description:
+        Verify simultaneous reads from different addresses on all read ports.
+    Inputs:
+        - Deterministic full-memory prefill
+        - Sliding read-address map across all read ports
+    Expected Outputs:
+        - Each rd_data[port] equals model at that port's address
+    """
     tb = InstrQMemTB(dut)
     await tb.initialize()
     await tb.clear_memory()
@@ -209,6 +258,15 @@ async def test_05_all_read_ports_different_addresses(dut):
 
 @cocotb.test()
 async def test_06_subset_read_ports_and_address_mixes(dut):
+    """
+    Description:
+        Sweep mixed read-address combinations over time.
+    Inputs:
+        - Deterministic prefill
+        - Per-step address remap across read ports
+    Expected Outputs:
+        - Read outputs always match model values at selected addresses
+    """
     tb = InstrQMemTB(dut)
     await tb.initialize()
     await tb.clear_memory()
@@ -232,6 +290,16 @@ async def test_06_subset_read_ports_and_address_mixes(dut):
 
 @cocotb.test()
 async def test_07_simultaneous_rw_disjoint_address_sets(dut):
+    """
+    Description:
+        Perform concurrent reads and writes to disjoint address sets.
+    Inputs:
+        - Prefill memory
+        - Read odd-address set while writing even-address set
+    Expected Outputs:
+        - Written addresses update correctly
+        - Read addresses continue to return expected model values
+    """
     tb = InstrQMemTB(dut)
     await tb.initialize()
     await tb.clear_memory()
@@ -270,6 +338,17 @@ async def test_07_simultaneous_rw_disjoint_address_sets(dut):
 
 @cocotb.test()
 async def test_08_read_write_same_address_cycle_boundary(dut):
+    """
+    Description:
+        Check same-address overwrite timing across a clock boundary.
+    Inputs:
+        - Initialize one address
+        - Read old value, then write new value to same address at clock edge
+    Expected Outputs:
+        - Pre-edge read shows old value
+        - Post-edge read shows new value
+        - Memory model matches final state
+    """
     tb = InstrQMemTB(dut)
     await tb.initialize()
     await tb.clear_memory()
@@ -307,6 +386,15 @@ async def test_08_read_write_same_address_cycle_boundary(dut):
 
 @cocotb.test()
 async def test_09_multiwriter_same_address_or_merge(dut):
+    """
+    Description:
+        Validate same-address multiwriter behavior in one cycle.
+    Inputs:
+        - All write ports target the same address with different patterns
+    Expected Outputs:
+        - Stored value equals OR-merged pattern per DUT design
+        - Readback and memory model agree
+    """
     tb = InstrQMemTB(dut)
     await tb.initialize()
     await tb.clear_memory()
@@ -331,6 +419,16 @@ async def test_09_multiwriter_same_address_or_merge(dut):
 
 @cocotb.test()
 async def test_10_randomized_multiport_scoreboard(dut):
+    """
+    Description:
+        Randomized multiport regression with scoreboard-style model checking.
+    Inputs:
+        - 60 cycles of random read addresses and random write transactions
+        - Fixed random seed for reproducibility
+    Expected Outputs:
+        - Read data always matches model for selected addresses
+        - Spot and periodic full-memory checks match model
+    """
     tb = InstrQMemTB(dut)
     await tb.initialize()
     await tb.clear_memory()
