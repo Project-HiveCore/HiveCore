@@ -2,7 +2,7 @@
 * Module Name    : instr_q_mem
 * Author         : Jacob Dudik
 * Creation Date  : 09/07/2025
-* Last edit Date : 03/24/2026
+* Last edit Date : 03/25/2026
 * Description    : Register based memory unit for the
 *                  Instruction Queue FIFO with
 *                  parameterizable numbers of rd/wr
@@ -25,13 +25,13 @@ module instr_q_mem
         // no reset needed, fifo handles what slots are valid
 
         // ========= Write Side =========
-        input                   wr_en  [WR_PORTS],
-        input  [AddrWidth-1:0] wr_addr[WR_PORTS],
-        input  [DATA_WIDTH-1:0] wr_data[WR_PORTS],
+        input                   wr_en   [WR_PORTS],
+        input  [AddrWidth-1:0]  wr_addr [WR_PORTS],
+        input  [DATA_WIDTH-1:0] wr_data [WR_PORTS],
 
         // ========= Read Side =========
-        input  [AddrWidth-1:0] rd_addr[RD_PORTS],
-        output [DATA_WIDTH-1:0] rd_data[RD_PORTS]
+        input  [AddrWidth-1:0]  rd_addr [RD_PORTS],
+        output [DATA_WIDTH-1:0] rd_data [RD_PORTS]
     );
 
     // ========= Parameter Checks =========
@@ -41,9 +41,9 @@ module instr_q_mem
         $error("Invalid depth parameter. Must be a power of 2 less than or equal to 256.");
 
     // ========= Signal Definitions =========
-    logic [DEPTH-1:0] [DATA_WIDTH-1:0]  mem;         // flop array
-    logic [DEPTH-1:0] [DATA_WIDTH-1:0]  mem_wr_data; // input lines
-    logic [DEPTH-1:0] [WR_PORTS-1:0]    mem_wr_en;   // each addr has one enable bit per write port
+    logic [DEPTH-1:0] [DATA_WIDTH-1:0] mem;         // flop array
+    logic [DEPTH-1:0] [DATA_WIDTH-1:0] mem_wr_data; // input lines
+    logic [DEPTH-1:0] [WR_PORTS-1:0]   mem_wr_en;   // each addr has one enable bit per write port
 
     // ========= Write Enable Decoders =========
     always_comb begin
