@@ -111,14 +111,18 @@ module instr_q_fifo
     // Capacity Logic
     always_comb begin : capacity_logic
         // Set write ready signals (opposite of full conditions)
-        for (int port = 0; port < WR_PORTS; port++) begin
+        wr_slots_ready[0] = !((wr_ptr_aug[0]  != rd_ptr_aug[0]) &&
+                             (wr_ptr_addr[0] == rd_ptr_addr[0]));
+        for (int port = 1; port < WR_PORTS; port++) begin
             wr_slots_ready[port] = !((wr_ptr_aug[port]  != rd_ptr_aug[0]) &&
-                                     (wr_ptr_addr[port] == rd_ptr_addr[0]));
+                                     (wr_ptr_addr[port] == rd_ptr_addr[0]))
+                                   && wr_slots_ready[port-1];
         end
 
         // Set read ready signals (opposite of empty conditions)
-        for (int port = 0; port < RD_PORTS; port++) begin
-            rd_slots_ready[port] = (wr_ptr[0] != rd_ptr[port]);
+        rd_slots_ready[0] = (wr_ptr[0] != rd_ptr[0]);
+        for (int port = 1; port < RD_PORTS; port++) begin
+            rd_slots_ready[port] = (wr_ptr[0] != rd_ptr[port]) && rd_slots_ready[port-1];
         end
 
         // Assign intermediate flags to outputs
@@ -128,7 +132,9 @@ module instr_q_fifo
 
     // Error Logic
     always_comb begin : error_logic
-        // determine if user incorrectly set wr and rd enables
+        // Determine if user incorrectly set wr and rd enables
+        wr_en_mismatch = '0;
+        rd_en_mismatch = '0;
         for (int port = 1; port < WR_PORTS; port++) begin
             wr_en_mismatch |= (wr_en[port] && !wr_en[port-1]);
         end
@@ -136,7 +142,9 @@ module instr_q_fifo
             rd_en_mismatch |= (rd_en[port] && !rd_en[port-1]);
         end
 
-        // determine if too many reads or writes are occuring
+        // Determine if too many reads or writes are occuring
+        overflow = '0;
+        underflow = '0;
         for (int port = 0; port < WR_PORTS; port++) begin
             overflow |= (wr_en[port] && !wr_slots_ready[port]);
         end
@@ -144,11 +152,11 @@ module instr_q_fifo
             underflow |= (rd_en[port] && !rd_slots_ready[port]);
         end
 
-        // generate general error flags
+        // Generate general error flags
         wr_err = wr_en_mismatch || overflow;
         rd_err = rd_en_mismatch || underflow;
 
-        // assign error outputs
+        // Assign error outputs
         wr_error = wr_err;
         rd_error = rd_err;
     end : error_logic
@@ -162,7 +170,7 @@ module instr_q_fifo
     always_comb begin : next_wr_ptr_logic
         for (int i = 0; i < WR_PORTS; i++) begin
             wr_ptr_next[i] = wr_ptr[i];
-            wr_ptr_next[WR_PORTS + i] = wr_ptr[WR_PORTS - 1] + i;
+            wr_ptr_next[WR_PORTS + i] = wr_ptr[WR_PORTS - 1] + (i + 1);
         end
     end : next_wr_ptr_logic
 
@@ -176,8 +184,8 @@ module instr_q_fifo
     // Update write pointers
     always_ff @(posedge clk) begin : wr_ptr_logic
         if (!rstn || flush) begin
-            for (int ptr = 0; ptr < WR_PORTS; ptr++) begin
-                wr_ptr[ptr] <= AddrWidth'(ptr);
+            for (int addr = 0; addr < WR_PORTS; addr++) begin
+                wr_ptr[addr] <= addr;
             end
         end
 
@@ -206,15 +214,15 @@ module instr_q_fifo
     always_comb begin : next_rd_ptr_logic
         for (int i = 0; i < RD_PORTS; i++) begin
             rd_ptr_next[i] = rd_ptr[i];
-            rd_ptr_next[RD_PORTS + i] = rd_ptr[RD_PORTS - 1] + i;
+            rd_ptr_next[RD_PORTS + i] = rd_ptr[RD_PORTS - 1] + (i + 1);
         end
     end : next_rd_ptr_logic
 
     // Update read pointers
     always_ff @(posedge clk) begin : rd_ptr_logic
         if (!rstn || flush) begin
-            for (int ptr = 0; ptr < RD_PORTS; ptr++) begin
-                rd_ptr[ptr] <= AddrWidth'(ptr);
+            for (int addr = 0; addr < RD_PORTS; addr++) begin
+                rd_ptr[addr] <= addr;
             end
         end
 
