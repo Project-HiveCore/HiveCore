@@ -1,12 +1,12 @@
-/************************************************************
+/**************************************************************************************************
 * Module Name    : instr_q_fifo
 * Author         : Jacob Dudik
 * Creation Date  : 09/07/2025
-* Last edit Date : 03/25/2026
-* Description    : A synchronous FIFO for the Instruction
-*                  Queue with a parameterizable number of
-*                  instructions, read ports, and write ports.
-*************************************************************/
+* Last edit Date : 03/28/2026
+* Description    : A synchronous, parameterizable multi-port FIFO for the Instruction Queue.
+*                  Supports configurable depth, data width, read ports, and write ports,
+*                  with per-port ready signaling and read or write error reporting.
+**************************************************************************************************/
 
 `ifndef INSTR_Q_FIFO
 `define INSTR_Q_FIFO
@@ -62,14 +62,15 @@ module instr_q_fifo
 
     // Break pointers into address and augment bits
     generate
-        for (genvar i = 0; i < WR_PORTS; i++) begin
+        for (genvar i = 0; i < WR_PORTS; i++) begin : g_split_wr_ptr
             assign wr_ptr_aug[i]  = wr_ptr[i][AddrWidth];
             assign wr_ptr_addr[i] = wr_ptr[i][AddrWidth-1:0];
-        end
-        for (genvar i = 0; i < RD_PORTS; i++) begin
+        end : g_split_wr_ptr
+
+        for (genvar i = 0; i < RD_PORTS; i++) begin : g_split_rd_ptr
             assign rd_ptr_aug[i]  = rd_ptr[i][AddrWidth];
             assign rd_ptr_addr[i] = rd_ptr[i][AddrWidth-1:0];
-        end
+        end : g_split_rd_ptr
     endgenerate
 
     // Intermeditate Flag Signals
