@@ -15,16 +15,16 @@ A 64-bit RISC-V, out-of-order, superscalar CPU core.
 ```
 .
 ├── arch
-│   ├── isa 	# ISA documentation
-│   └── spec	# Architecture speficiations
+│   ├── isa 	        # ISA documentation
+│   └── spec	        # Architecture specifications
 │
 ├── core
-│   ├── <module>
-│   │   ├── sim	    # Testbenches and verification scripts
-│   │   ├── spec    # Module specifications
-│   │   └── src     # Module code
+│   ├── <module>        # Module name
+│   │   ├── README.md   # Specifications and usage
+│   │   ├── sim	        # Testbenches and verification scripts
+│   │   └── src         # SV code
 │   │
-│   └── pkg    # Top level packages
+│   └── pkg             # Top level packages and common files
 │
-└── tpl	   # Templates
+└── tpl	                # Templates
 ```
