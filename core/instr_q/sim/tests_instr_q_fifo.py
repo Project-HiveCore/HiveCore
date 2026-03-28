@@ -93,7 +93,7 @@ class InstrQFifoTB:
         sampled = [int(self.dut.rd_data[p].value) for p in range(rd_accept_count)]
 
         await RisingEdge(self.dut.clk)
-        await Timer(1, unit="step")
+        # await Timer(1, unit="step")
 
         for p in range(self.wr_ports):
             self.dut.wr_en[p].value = 0
@@ -390,7 +390,6 @@ async def test_08_mismatch_enable_patterns_hold_pointers(dut):
     tb.dut.rd_en[1].value = 1
 
     await RisingEdge(tb.dut.clk)
-    await Timer(1, unit="step")
 
     tb.dut.wr_en[1].value = 0
     tb.dut.rd_en[1].value = 0
@@ -401,3 +400,21 @@ async def test_08_mismatch_enable_patterns_hold_pointers(dut):
         if rd_n > 0:
             assert sampled[0] == seed, f"Mismatch-pattern cycle altered FIFO order/value (got 0x{sampled[0]:x})"
             break
+
+@cocotb.test()
+async def test_09_fill_and_flush(dut):
+    tb = InstrQFifoTB(dut)
+    await tb.reset()
+
+    # Fill FIFO to capacity.
+    for _ in range(0, tb.depth, tb.wr_ports):
+        data = []
+        for i in range(tb.wr_ports):
+            data.append(tb._mask(0xC0DE0000 + i))
+        wr_n, _, _ = await tb.cycle(data, 0)
+        assert wr_n == tb.wr_ports, f"Expected to write {tb.wr_ports} entries, but only {wr_n} were accepted"
+        assert tb.dut.wr_error.value == 0, "Unexpected write error during write phase"
+
+    await RisingEdge(tb.dut.clk)
+    for i in range(tb.wr_ports):
+        assert tb.dut.wr_ready[i].value == 0, f"Expected wr_ready[{i}] to be 0 when full, but got {tb.dut.wr_ready[i].value}"

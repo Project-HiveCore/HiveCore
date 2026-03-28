@@ -63,7 +63,6 @@ def test_instr_q_fifo(cfg):
     sim = os.getenv("SIM", "questa")
     sim_build_args = _sim_build_args()
     testcase = os.getenv("TESTCASE", "").strip() or None
-    waves = os.getenv("WAVES", "1") not in {"0", "false", "False"}
 
     runner = get_runner(sim)
 
@@ -76,24 +75,30 @@ def test_instr_q_fifo(cfg):
         build_dir=str(build_dir),
         build_args=sim_build_args,
         timescale=("1ns", "1ps"),
-        waves=waves,
         always=True,
     )
+
+    
+
+    PKG_PATH = Path(__file__).resolve().parents[2] / "pkg"
+    waves_do_path = PKG_PATH / "waves.do"
 
     try:
         runner.test(
             hdl_toplevel="instr_q_fifo",
             test_module="tests_instr_q_fifo",
+            test_args=[
+                "-voptargs=+acc",
+                "-do", str(waves_do_path)
+            ],
             testcase=testcase,
-            waves=waves,
         )
     finally:
-        if waves:
-            src_wlf = build_dir / "vsim.wlf"
-            if src_wlf.exists():
-                waves_dir = THIS_DIR / "sim_build" / "waves"
-                waves_dir.mkdir(parents=True, exist_ok=True)
+        src_wlf = build_dir / "vsim.wlf"
+        if src_wlf.exists():
+            waves_dir = THIS_DIR / "sim_build" / "waves"
+            waves_dir.mkdir(parents=True, exist_ok=True)
 
-                suffix = f"_{testcase}" if testcase else ""
-                dst_wlf = waves_dir / f"{cfg['name']}{suffix}.wlf"
-                shutil.copy2(src_wlf, dst_wlf)
+            suffix = f"_{testcase}" if testcase else ""
+            dst_wlf = waves_dir / f"{cfg['name']}{suffix}.wlf"
+            shutil.copy2(src_wlf, dst_wlf)
