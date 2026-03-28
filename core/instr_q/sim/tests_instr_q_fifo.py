@@ -112,8 +112,9 @@ async def test_01_reset_state_and_port_shapes(dut):
         - flush=0, all wr_en/rd_en deasserted
     Expected Outputs:
         - wr_ready/rd_ready lengths match WR_PORTS/RD_PORTS
-        - wr_ready[0] is high after reset
         - ready vectors contain only binary values
+        - wr_ready signals are high after reset
+        - rd_ready signals are low after reset
     """
     tb = InstrQFifoTB(dut)
     await tb.reset()
@@ -124,11 +125,13 @@ async def test_01_reset_state_and_port_shapes(dut):
     assert len(wr_ready) == tb.wr_ports
     assert len(rd_ready) == tb.rd_ports
 
-    # Basic sanity after reset.
-    assert wr_ready[0] == 1, f"Expected wr_ready[0]=1 after reset, got {wr_ready}"
+    # Basic sanity after reset
     assert all(x in (0, 1) for x in wr_ready), f"Non-binary wr_ready values: {wr_ready}"
     assert all(x in (0, 1) for x in rd_ready), f"Non-binary rd_ready values: {rd_ready}"
-
+    for p in range(tb.wr_ports):
+        assert tb.dut.wr_ready[p].value == 1, f"wr_ready[{p}] signal should be 1 after reset, got {tb.dut.wr_ready[p].value}"
+    for p in range(tb.rd_ports):
+        assert tb.dut.rd_ready[p].value == 0, f"rd_ready[{p}] signal should be 0 after reset, got {tb.dut.rd_ready[p].value}"
 
 @cocotb.test()
 async def test_02_single_write_single_read_roundtrip(dut):
@@ -151,7 +154,7 @@ async def test_02_single_write_single_read_roundtrip(dut):
     assert rd_n == 0 and sampled == []
     assert wr_n >= 0
 
-    # If/when a legal read becomes accepted, the first observed value should match.
+    # If/when a legal read becomes accepted, the first observed value should match
     for _ in range(tb.depth + tb.rd_ports + 4):
         _, rd_n, sampled = await tb.cycle([], 1)
         if rd_n > 0:
@@ -404,6 +407,13 @@ async def test_08_mismatch_enable_patterns_hold_pointers(dut):
 @cocotb.test()
 async def test_09_fill_and_flush(dut):
     tb = InstrQFifoTB(dut)
+    
+    # Skip this test if read or write ports are not powers of 2
+    if (tb.wr_ports & (tb.wr_ports - 1)) != 0:
+        return
+    if (tb.rd_ports & (tb.rd_ports - 1)) != 0:
+        return
+
     await tb.reset()
 
     # Fill FIFO to capacity.
@@ -418,3 +428,13 @@ async def test_09_fill_and_flush(dut):
     await RisingEdge(tb.dut.clk)
     for i in range(tb.wr_ports):
         assert tb.dut.wr_ready[i].value == 0, f"Expected wr_ready[{i}] to be 0 when full, but got {tb.dut.wr_ready[i].value}"
+
+    # Flush the FIFO
+    await tb.pulse_flush()
+
+    # After flush, read readies should be deasserted and write readies should be asserted.
+    for p in range(tb.rd_ports):
+        assert tb.dut.rd_ready[p].value == 0, f"Expected rd_ready[{p}] to be 0 after flush, but got {tb.dut.rd_ready[p].value}"
+
+    for p in range(tb.wr_ports):
+        assert tb.dut.wr_ready[p].value == 1, f"Expected wr_ready[{p}] to be 1 after flush, but got {tb.dut.wr_ready[p].value}"

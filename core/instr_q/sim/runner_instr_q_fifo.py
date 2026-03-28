@@ -33,6 +33,10 @@ PARAM_SETS = [
         "name": "d16_r4_w4",
         "parameters": {"DEPTH": 16, "RD_PORTS": 4, "WR_PORTS": 4, "DATA_WIDTH": 32},
     },
+    {
+        "name": "d16_r3_w3",
+        "parameters": {"DEPTH": 16, "RD_PORTS": 3, "WR_PORTS": 3, "DATA_WIDTH": 32},
+    },
 ]
 
 
