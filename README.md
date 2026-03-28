@@ -16,7 +16,7 @@ A 64-bit RISC-V, out-of-order, superscalar CPU core.
 .
 ├── arch
 │   ├── isa 	        # ISA documentation
-│   └── spec	        # Architecture speficiations
+│   └── spec	        # Architecture specifications
 │
 ├── core
 │   ├── <module>        # Module name
