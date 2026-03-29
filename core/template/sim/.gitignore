@@ -1,0 +1,16 @@
+# Ignore everything listed here
+__pycache__
+sim_build
+transcript
+.visualizer
+*.log
+*.ini
+*.xml
+*.out
+*.wlf
+*.vcd
+*.fst
+*.bin
+
+# Except this file
+!.gitignore
