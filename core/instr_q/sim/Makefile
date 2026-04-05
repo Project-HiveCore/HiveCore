@@ -1,37 +1,28 @@
+# ========================
 # Pytest-based cocotb flow
+# ========================
 
-SIM ?= questa
-PYTEST ?= pytest
-MEM_RUNNER ?= runner_instr_q_mem.py
-FIFO_RUNNER ?= runner_instr_q_fifo.py
-SIM_ARGS += "-svinputport=net +acc +cover"
+PROJ_ROOT := ../../..
+TOOLS_DIR := $(PROJ_ROOT)/tools/sim
+RUNNER    := $(TOOLS_DIR)/runner_cocotb.py
+SIM_DIR   := $(shell pwd)
 
-# Optional filters:
-#   make test_mem PARAM_SET=d8_r4_w4
-#   make test_mem TESTCASE=test_10_randomized_multiport_scoreboard
+include $(TOOLS_DIR)/sim.mk
+
+# Optional overrides from command line
 PARAM_SET ?=
-TESTCASE ?=
+VIEW	  ?= default
+TESTCASE  ?=
 
-.PHONY: lint test mem fifo list_params clean wave
+.PHONY: test fifo mem
 
-lint:
-	verible-verilog-lint ../src/*
+# Run test cases for all modules in this directory
+test: fifo mem
 
-test: mem fifo
-
-mem:
-	SIM=$(SIM) SIM_ARGS=$(SIM_ARGS) PARAM_SET=$(PARAM_SET) TESTCASE=$(TESTCASE) $(PYTEST) -q $(MEM_RUNNER)
-
+# Run instr_q_fifo test cases
 fifo:
-	SIM=$(SIM) SIM_ARGS=$(SIM_ARGS) PARAM_SET=$(PARAM_SET) TESTCASE=$(TESTCASE) $(PYTEST) -q $(FIFO_RUNNER)
+	SIM_DIR=$(SIM_DIR) TOP_LEVEL=instr_q_fifo PARAM_SET=$(PARAM_SET) TESTCASE=$(TESTCASE) pytest -q $(RUNNER)
 
-clean:
-	rm -rf sim_build .pytest_cache __pycache__
-	rm -f results.xml *.ini vsim.wlf transcript *.log
-
-wave:
-	@if [ -z "$(PARAM_SET)" ]; then \
-		echo "Please set PARAM_SET (example: make wave PARAM_SET=d8_r4_w4)"; \
-		exit 1; \
-	fi
-	vsim -view sim_build/$(PARAM_SET)/vsim.wlf -do wave.do
+# Run instr_q_mem test cases
+mem:
+	SIM_DIR=$(SIM_DIR) TOP_LEVEL=instr_q_mem PARAM_SET=$(PARAM_SET) TESTCASE=$(TESTCASE) pytest -q $(RUNNER)
