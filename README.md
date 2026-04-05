@@ -8,7 +8,7 @@ A 64-bit RISC-V, out-of-order, superscalar CPU core.
 
 **In-Progess:** I (Base Integer)
 
-**Implemented:** 
+**Implemented:**
 
 ## Directories
 
@@ -26,5 +26,5 @@ A 64-bit RISC-V, out-of-order, superscalar CPU core.
 │   │
 │   └── pkg             # Top level packages and common files
 │
-└── tpl	                # Templates
+└── tools/sim		# Simulation tools and scripts used by all modules
 ```
