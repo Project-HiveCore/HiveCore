@@ -4,7 +4,7 @@ SRC_FILES = [
     "instr_q_mem.sv",
 ]
 
-PARAM_REQUIRED = False
+PARAM_REQUIRED = True
 
 SIM_ARGS = ["-svinputport=net"]
 
