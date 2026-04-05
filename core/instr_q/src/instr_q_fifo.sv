@@ -20,21 +20,21 @@ module instr_q_fifo
         localparam int AddrWidth    = $clog2(DEPTH)
     )
     (
-        input  logic                  clk,
-        input  logic                  rstn,
-        input  logic                  flush,
+        input  logic  clk,
+        input  logic  rstn,
+        input  logic  flush,
 
         // ========= Write Side =========
-        output logic                  wr_ready [WR_PORTS],
-        input  logic                  wr_en    [WR_PORTS],
-        input  logic [DATA_WIDTH-1:0] wr_data  [WR_PORTS],
-        output logic                  wr_error,
+        output logic [WR_PORTS-1:0]                  wr_ready,
+        input  logic [WR_PORTS-1:0]                  wr_en,
+        input  logic [WR_PORTS-1:0] [DATA_WIDTH-1:0] wr_data,
+        output logic                                 wr_error,
 
         // ========= Read Side =========
-        output logic                  rd_ready [RD_PORTS],
-        input  logic                  rd_en    [RD_PORTS],
-        output logic [DATA_WIDTH-1:0] rd_data  [RD_PORTS],
-        output logic                  rd_error
+        output logic [RD_PORTS-1:0]                  rd_ready,
+        input  logic [RD_PORTS-1:0]                  rd_en,
+        output logic [RD_PORTS-1:0] [DATA_WIDTH-1:0] rd_data,
+        output logic                                 rd_error
     );
 
     // ========= Parameter Checks =========
@@ -49,16 +49,16 @@ module instr_q_fifo
 
     // FSM Pointers (MSB is rollover flag for full/empty, referred to as the augment bit)
     // [1-bit rollover flag][ADDR_WIDTH-bit address]
-    logic [AddrWidth:0]   wr_ptr      [WR_PORTS];
-    logic                 wr_ptr_aug  [WR_PORTS];
-    logic [AddrWidth-1:0] wr_ptr_addr [WR_PORTS];
+    logic [WR_PORTS-1:0] [AddrWidth:0]      wr_ptr;
+    logic [WR_PORTS-1:0]                    wr_ptr_aug;
+    logic [WR_PORTS-1:0] [AddrWidth-1:0]    wr_ptr_addr;
 
-    logic [AddrWidth:0]   rd_ptr      [RD_PORTS];
-    logic                 rd_ptr_aug  [RD_PORTS];
-    logic [AddrWidth-1:0] rd_ptr_addr [RD_PORTS];
+    logic [RD_PORTS-1:0] [AddrWidth:0]      rd_ptr;
+    logic [RD_PORTS-1:0]                    rd_ptr_aug;
+    logic [RD_PORTS-1:0] [AddrWidth-1:0]    rd_ptr_addr;
 
-    logic [AddrWidth:0] wr_ptr_next [(2*WR_PORTS)];
-    logic [AddrWidth:0] rd_ptr_next [(2*RD_PORTS)];
+    logic [(2*WR_PORTS)-1:0] [AddrWidth:0]  wr_ptr_next;
+    logic [(2*RD_PORTS)-1:0] [AddrWidth:0]  rd_ptr_next;
 
     // Break pointers into address and augment bits
     generate
@@ -74,11 +74,11 @@ module instr_q_fifo
     endgenerate
 
     // Intermeditate Flag Signals
-    logic wr_slots_ready [WR_PORTS]; // valid ports to write
-    logic rd_slots_ready [RD_PORTS]; // valid ports to read
+    logic [WR_PORTS-1:0] wr_slots_ready; // valid ports to write
+    logic [RD_PORTS-1:0] rd_slots_ready; // valid ports to read
 
     // Guarded Write Enable Signals
-    logic mem_gated_wr_en [WR_PORTS];
+    logic [WR_PORTS-1:0] mem_gated_wr_en;
 
     // Error Signals
     logic overflow;         // too many writes occuring

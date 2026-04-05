@@ -21,17 +21,17 @@ module instr_q_mem
         localparam int AddrWidth    = $clog2(DEPTH)
     )
     (
-        input                   clk,
+        input                                   clk,
         // no reset needed, fifo handles what slots are valid
 
         // ========= Write Side =========
-        input                   wr_en   [WR_PORTS],
-        input  [AddrWidth-1:0]  wr_addr [WR_PORTS],
-        input  [DATA_WIDTH-1:0] wr_data [WR_PORTS],
+        input  [WR_PORTS-1:0]                   wr_en,
+        input  [WR_PORTS-1:0] [AddrWidth-1:0]   wr_addr,
+        input  [WR_PORTS-1:0] [DATA_WIDTH-1:0]  wr_data,
 
         // ========= Read Side =========
-        input  [AddrWidth-1:0]  rd_addr [RD_PORTS],
-        output [DATA_WIDTH-1:0] rd_data [RD_PORTS]
+        input  [RD_PORTS-1:0] [AddrWidth-1:0]   rd_addr,
+        output [RD_PORTS-1:0] [DATA_WIDTH-1:0]  rd_data
     );
 
     // ========= Parameter Checks =========

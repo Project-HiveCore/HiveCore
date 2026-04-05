@@ -30,11 +30,9 @@ class InstrQFifoTB:
 
     def _set_idle(self):
         self.dut.flush.value = 0
-        for p in range(self.wr_ports):
-            self.dut.wr_en[p].value = 0
-            self.dut.wr_data[p].value = 0
-        for p in range(self.rd_ports):
-            self.dut.rd_en[p].value = 0
+        self.dut.wr_en.value = 0
+        self.dut.wr_data.value = 0
+        self.dut.rd_en.value = 0
 
     async def reset(self):
         self._set_idle()
@@ -51,11 +49,9 @@ class InstrQFifoTB:
         await Timer(1, unit="step")
 
     def _read_ready_vec(self, which: str, n_ports: int):
-        vec = []
         sig = self.dut.wr_ready if which == "wr" else self.dut.rd_ready
-        for p in range(n_ports):
-            vec.append(int(sig[p].value))
-        return vec
+        val = int(sig.value)
+        return [(val >> p) & 1 for p in range(n_ports)]
 
     @staticmethod
     def _contiguous_ready_count(ready_vec):
@@ -79,26 +75,57 @@ class InstrQFifoTB:
         wr_ready = self._read_ready_vec("wr", self.wr_ports)
         rd_ready = self._read_ready_vec("rd", self.rd_ports)
 
-        wr_accept_count = min(len(wr_payloads), self._contiguous_ready_count(wr_ready))
+        wr_ready_count = self._contiguous_ready_count(wr_ready)
+        assert len(wr_payloads) <= wr_ready_count, (
+            f"cycle() called with {len(wr_payloads)} write payload(s) "
+            f"but only {wr_ready_count} write port(s) are ready"
+        )
+        wr_accept_count = len(wr_payloads)
         rd_accept_count = min(rd_req_count, self._contiguous_ready_count(rd_ready))
 
+        wr_en_packed = 0
+        wr_data_packed = 0
         for p in range(self.wr_ports):
-            en = 1 if p < wr_accept_count else 0
-            self.dut.wr_en[p].value = en
-            self.dut.wr_data[p].value = self._mask(wr_payloads[p]) if en else 0
+            if p < wr_accept_count:
+                wr_en_packed   |= 1 << p
+                wr_data_packed |= self._mask(wr_payloads[p]) << (p * self.data_width)
+        self.dut.wr_en.value   = wr_en_packed
+        self.dut.wr_data.value = wr_data_packed
 
+        rd_en_packed = 0
         for p in range(self.rd_ports):
-            self.dut.rd_en[p].value = 1 if p < rd_accept_count else 0
+            if p < rd_accept_count:
+                rd_en_packed |= 1 << p
+        self.dut.rd_en.value = rd_en_packed
 
-        sampled = [int(self.dut.rd_data[p].value) for p in range(rd_accept_count)]
+        sampled = []
+        if rd_accept_count > 0:
+            rd_binstr = self.dut.rd_data.value.binstr  # MSB-first string
+            total_bits = len(rd_binstr)
+
+            # Verify enabled read ports dont contain X/Z values before we try to parse them as int
+            for p in range(rd_accept_count):
+                lo = p * self.data_width
+                hi = lo + self.data_width
+                # binstr is MSB-first, so bit index 'lo' maps to str index (total_bits-1-lo)
+                slice_str = rd_binstr[total_bits - hi : total_bits - lo]
+                bad = set(slice_str) - {'0', '1'}
+                assert not bad, (
+                    f"rd_data port {p} contains {bad} values "
+                    f"(bits [{hi-1}:{lo}]): {slice_str}"
+                )
+
+            # Replace X/Z in non-enabled read port bits so int() succeeds
+            rd_safe = rd_binstr.replace('x', '0').replace('z', '0').replace('X', '0').replace('Z', '0')
+            rd_data_packed = int(rd_safe, 2)
+
+            for p in range(rd_accept_count):
+                sampled.append((rd_data_packed >> (p * self.data_width)) & self.data_mask)
 
         await RisingEdge(self.dut.clk)
-        # await Timer(1, unit="step")
 
-        for p in range(self.wr_ports):
-            self.dut.wr_en[p].value = 0
-        for p in range(self.rd_ports):
-            self.dut.rd_en[p].value = 0
+        self.dut.wr_en.value = 0
+        self.dut.rd_en.value = 0
 
         return wr_accept_count, rd_accept_count, sampled
 
@@ -128,10 +155,14 @@ async def test_01_reset_state_and_port_shapes(dut):
     # Basic sanity after reset
     assert all(x in (0, 1) for x in wr_ready), f"Non-binary wr_ready values: {wr_ready}"
     assert all(x in (0, 1) for x in rd_ready), f"Non-binary rd_ready values: {rd_ready}"
+    wr_ready_val = int(tb.dut.wr_ready.value)
     for p in range(tb.wr_ports):
-        assert tb.dut.wr_ready[p].value == 1, f"wr_ready[{p}] signal should be 1 after reset, got {tb.dut.wr_ready[p].value}"
+        bit = (wr_ready_val >> p) & 1
+        assert bit == 1, f"wr_ready[{p}] signal should be 1 after reset, got {bit}"
+    rd_ready_val = int(tb.dut.rd_ready.value)
     for p in range(tb.rd_ports):
-        assert tb.dut.rd_ready[p].value == 0, f"rd_ready[{p}] signal should be 0 after reset, got {tb.dut.rd_ready[p].value}"
+        bit = (rd_ready_val >> p) & 1
+        assert bit == 0, f"rd_ready[{p}] signal should be 0 after reset, got {bit}"
 
 @cocotb.test()
 async def test_02_single_write_single_read_roundtrip(dut):
@@ -216,6 +247,7 @@ async def test_04_fill_until_backpressure_then_drain(dut):
 
     # Fill until port0 is no longer write-ready.
     for _ in range(tb.depth + 4):
+        await Timer(1, unit="step")  # let combinational wr_ready settle after last clock edge
         wr_ready = tb._read_ready_vec("wr", tb.wr_ports)
         if wr_ready[0] == 0:
             break
@@ -271,6 +303,7 @@ async def test_05_simultaneous_rw_keeps_order(dut):
     data += prefill
 
     for _ in range(20):
+        await Timer(1, unit="step")  # let combinational wr_ready/rd_ready settle after last clock edge
         wr_ready = tb._read_ready_vec("wr", tb.wr_ports)
         rd_ready = tb._read_ready_vec("rd", tb.rd_ports)
 
@@ -340,6 +373,7 @@ async def test_07_randomized_legal_traffic_scoreboard(dut):
     next_data = 0
 
     for _ in range(200):
+        await Timer(1, unit="step")  # let combinational wr_ready/rd_ready settle after last clock edge
         wr_ready = tb._read_ready_vec("wr", tb.wr_ports)
         rd_ready = tb._read_ready_vec("rd", tb.rd_ports)
 
@@ -385,17 +419,15 @@ async def test_08_mismatch_enable_patterns_hold_pointers(dut):
     assert wr_n == 1
 
     # Illegal write/read patterns: port1 high while port0 low.
-    tb.dut.wr_en[0].value = 0
-    tb.dut.wr_en[1].value = 1
-    tb.dut.wr_data[1].value = tb._mask(0xBAD0BAD0)
+    tb.dut.wr_en.value = (1 << 1)               # only port 1 enabled
+    tb.dut.wr_data.value = tb._mask(0xBAD0BAD0) << (1 * tb.data_width)  # data in port 1 slot
 
-    tb.dut.rd_en[0].value = 0
-    tb.dut.rd_en[1].value = 1
+    tb.dut.rd_en.value = (1 << 1)                # only port 1 enabled
 
     await RisingEdge(tb.dut.clk)
 
-    tb.dut.wr_en[1].value = 0
-    tb.dut.rd_en[1].value = 0
+    tb.dut.wr_en.value = 0
+    tb.dut.rd_en.value = 0
 
     # If/when a legal read is accepted later, it should still return seeded value first.
     for _ in range(tb.depth + tb.rd_ports + 4):
@@ -426,15 +458,21 @@ async def test_09_fill_and_flush(dut):
         assert tb.dut.wr_error.value == 0, "Unexpected write error during write phase"
 
     await RisingEdge(tb.dut.clk)
+    wr_ready_val = int(tb.dut.wr_ready.value)
     for i in range(tb.wr_ports):
-        assert tb.dut.wr_ready[i].value == 0, f"Expected wr_ready[{i}] to be 0 when full, but got {tb.dut.wr_ready[i].value}"
+        bit = (wr_ready_val >> i) & 1
+        assert bit == 0, f"Expected wr_ready[{i}] to be 0 when full, but got {bit}"
 
     # Flush the FIFO
     await tb.pulse_flush()
 
     # After flush, read readies should be deasserted and write readies should be asserted.
+    rd_ready_val = int(tb.dut.rd_ready.value)
     for p in range(tb.rd_ports):
-        assert tb.dut.rd_ready[p].value == 0, f"Expected rd_ready[{p}] to be 0 after flush, but got {tb.dut.rd_ready[p].value}"
+        bit = (rd_ready_val >> p) & 1
+        assert bit == 0, f"Expected rd_ready[{p}] to be 0 after flush, but got {bit}"
 
+    wr_ready_val = int(tb.dut.wr_ready.value)
     for p in range(tb.wr_ports):
-        assert tb.dut.wr_ready[p].value == 1, f"Expected wr_ready[{p}] to be 1 after flush, but got {tb.dut.wr_ready[p].value}"
+        bit = (wr_ready_val >> p) & 1
+        assert bit == 1, f"Expected wr_ready[{p}] to be 1 after flush, but got {bit}"

@@ -29,14 +29,12 @@ class InstrQMemTB:
         return value & self.data_mask
 
     def _set_all_writes_idle(self):
-        for p in range(self.wr_ports):
-            self.dut.wr_en[p].value = 0
-            self.dut.wr_addr[p].value = 0
-            self.dut.wr_data[p].value = 0
+        self.dut.wr_en.value = 0
+        self.dut.wr_addr.value = 0
+        self.dut.wr_data.value = 0
 
     def _set_all_reads_idle(self):
-        for p in range(self.rd_ports):
-            self.dut.rd_addr[p].value = 0
+        self.dut.rd_addr.value = 0
 
     async def initialize(self):
         self._set_all_writes_idle()
@@ -47,9 +45,9 @@ class InstrQMemTB:
         """Clear every location by writing zeros through write port 0."""
         self._set_all_writes_idle()
         for addr in range(self.depth):
-            self.dut.wr_en[0].value = 1
-            self.dut.wr_addr[0].value = addr
-            self.dut.wr_data[0].value = 0
+            self.dut.wr_en.value = 1           # port 0 enable in bit 0
+            self.dut.wr_addr.value = addr       # port 0 addr in lowest bits
+            self.dut.wr_data.value = 0
             await RisingEdge(self.dut.clk)
         self._set_all_writes_idle()
         await RisingEdge(self.dut.clk)
@@ -60,27 +58,36 @@ class InstrQMemTB:
         writes: iterable of (port, addr, data)
         """
         self._set_all_writes_idle()
+        wr_en_packed = 0
+        wr_addr_packed = 0
+        wr_data_packed = 0
         for port, addr, data in writes:
             assert 0 <= port < self.wr_ports, f"Invalid write port {port}"
             assert 0 <= addr < self.depth, f"Invalid write addr {addr}"
-            self.dut.wr_en[port].value = 1
-            self.dut.wr_addr[port].value = addr
-            self.dut.wr_data[port].value = self._mask_data(data)
+            wr_en_packed   |= 1 << port
+            wr_addr_packed |= addr << (port * self.addr_width)
+            wr_data_packed |= self._mask_data(data) << (port * self.data_width)
+        self.dut.wr_en.value   = wr_en_packed
+        self.dut.wr_addr.value = wr_addr_packed
+        self.dut.wr_data.value = wr_data_packed
 
         await RisingEdge(self.dut.clk)
         await Timer(1, unit="step")
         self._set_all_writes_idle()
 
     async def set_read_addresses(self, addr_by_port):
+        rd_addr_packed = 0
         for p in range(self.rd_ports):
-            self.dut.rd_addr[p].value = int(addr_by_port.get(p, 0))
+            rd_addr_packed |= int(addr_by_port.get(p, 0)) << (p * self.addr_width)
+        self.dut.rd_addr.value = rd_addr_packed
 
         # Let combinational read outputs settle in current timestep
         await Timer(1, unit="step")
 
     async def assert_rd_matches(self, expected_by_port):
+        rd_data_packed = int(self.dut.rd_data.value)
         for p, exp in expected_by_port.items():
-            got = int(self.dut.rd_data[p].value)
+            got = (rd_data_packed >> (p * self.data_width)) & self.data_mask
             exp = self._mask_data(exp)
             assert got == exp, f"rd_data[{p}] mismatch: expected 0x{exp:x}, got 0x{got:x}"
 
@@ -369,9 +376,9 @@ async def test_08_read_write_same_address_cycle_boundary(dut):
     # Drive a write to same address, then sample after edge
     new_data = 0xCAFEBABE & tb.data_mask
     tb._set_all_writes_idle()
-    tb.dut.wr_en[0].value = 1
-    tb.dut.wr_addr[0].value = target_addr
-    tb.dut.wr_data[0].value = new_data
+    tb.dut.wr_en.value = 1              # port 0 enable in bit 0
+    tb.dut.wr_addr.value = target_addr  # port 0 addr in lowest bits
+    tb.dut.wr_data.value = new_data     # port 0 data in lowest bits
 
     await RisingEdge(tb.dut.clk)
     await Timer(1, unit="step")
