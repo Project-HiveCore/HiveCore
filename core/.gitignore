@@ -1,0 +1,11 @@
+sim_build
+transcript
+.visualizer
+*.log
+*.ini
+*.xml
+*.out
+*.wlf
+*.vcd
+*.fst
+*.bin
