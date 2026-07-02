@@ -1,0 +1,3 @@
+[submodule "core/common_rtl"]
+	path = core/common_rtl
+	url = https://github.com/Project-HiveCore/common_rtl.git
