@@ -5,7 +5,7 @@ package interface_struct_pkg;
 typedef struct packed {
   logic [MEM_ADDR_WIDTH-1:0]    pc;
   func_unit_e                   fu;
-  logic [2:0]                   funct3;
+  logic [3:0]                   uOP;
   logic [4:0]                   rs1_addr;
   logic [31:0]                  rs1_data;
   logic [4:0]                   rs2_addr;

@@ -38,7 +38,7 @@ module decode
   // ==          Internal Variables            ==
   // ============================================
   // Stage Output Data 
-  decode_execute_if_t DE_if_d;
+  decode_execute_if_t           [FETCH_WIDTH-1:0] DE_if_d;
 
   // Instruction Fields
   logic [6:0]                   [FETCH_WIDTH-1:0] opcode;
@@ -47,8 +47,6 @@ module decode
   logic [4:0]                   [FETCH_WIDTH-1:0] rs1;
   logic [4:0]                   [FETCH_WIDTH-1:0] rs2;
   logic [4:0]                   [FETCH_WIDTH-1:0] rd;
-  shift_dir_e                   [FETCH_WIDTH-1:0] shift_dir;
-
   logic [INT_MAX_IMM_WIDTH-1:0] [FETCH_WIDTH-1:0] imm_i_type;
   logic [INT_MAX_IMM_WIDTH-1:0] [FETCH_WIDTH-1:0] imm_s_type;
   logic [INT_MAX_IMM_WIDTH-1:0] [FETCH_WIDTH-1:0] imm_b_type;
@@ -67,7 +65,6 @@ module decode
       rs1[idx]    = instr_i[idx][19:15];
       rs2[idx]    = instr_i[idx][24:20];
       rd[idx]     = instr_i[idx][11:7];
-      shift_dir   = instr_i[idx][30];
       
       // ============
       //  Immediates
@@ -112,87 +109,103 @@ module decode
   // == Generate control signals/imm based on OPCODE ==
   // ==================================================
   always_comb begin
-    DE_if_d.funct3 = funct3;
-    DE_if_d.fu     = NONE;
-    DE_if_d.imm    = '0;
-    DE_if_d.is_32b = '0;
-    // TODO: need to make more control signals for branch esc instructions and when to use imm/pc
+    for (int idx = 0; idx < FETCH_WIDTH; idx++) begin
+      DE_if_d[idx].uOP    = {1'b0, funct3[idx]};
+      DE_if_d[idx].fu     = NONE;
+      DE_if_d[idx].imm    = '0;
+      DE_if_d[idx].is_32b = '0;
 
-    case (opcode)
-      OP: begin
-        DE_if_d.fu = ALU;
-      end
-
-      OP_32: begin
-        DE_if_d.fu     = ALU;
-        DE_if_d.is_32b = '1;
-      end
-
-      // I-type opcodes
-      OP_IMM: begin
-        DE_if_d.fu = ALU;
-
-        if ((alu_funct3_e'(funct3) == ALU_SLL) || (alu_funct3_e'(funct3) == ALU_SRL_SRA)) begin
-          DE_if_d.imm = {14'b0, imm_i_type[5:0]};
-        end else begin
-          DE_if_d.imm = imm_i_type;
+      case (opcode)
+        OP: begin
+          DE_if_d[idx].uOP = {instr_i[idx][30], funct3[idx]};
+          DE_if_d[idx].fu  = ALU;
         end
-      end
 
-      OP_IMM_32: begin
-        DE_if_d.fu     = ALU;
-        DE_if_d.is_32b = '1;
-
-        if ((alu_funct3_e'(funct3) == ALU_SLL) || (alu_funct3_e'(funct3) == ALU_SRL_SRA)) begin
-          DE_if_d.imm = {15'b0, imm_i_type[4:0]};
-        end else begin
-          DE_if_d.imm = imm_i_type;
+        OP_32: begin
+          DE_if_d[idx].uOP    = {instr_i[idx][30], funct3[idx]};
+          DE_if_d[idx].fu     = ALU;
+          DE_if_d[idx].is_32b = '1;
         end
-      end
-      
-      LOAD: begin
-        DE_if_d.fu  = LOAD;
-        DE_if_d.imm = imm_i_type;
-      end
 
-      STORE: begin
-        DE_if_d.fu  = STORE;
-        DE_if_d.imm = imm_s_type;
-      end
+        // I-type opcodes
+        OP_IMM: begin
+          DE_if_d[idx].fu = ALU;
 
-      BRANCH: begin
-        DE_if_d.fu  = BRANCH;
-        DE_if_d.imm = imm_b_type;
-      end
+          // TODO/NOTE: can probably get rid of this since ALU could just do this
+          if (funct3[idx] == 3'b001) ||  // SLL
+             (funct3[idx] == 3'b101)     // SRL/SRA
+          begin
+            DE_if_d[idx].uOP = {instr_i[idx][30], funct3[idx]};
+            DE_if_d[idx].imm = {14'b0, imm_i_type[idx][5:0]};
+          end else begin
+            DE_if_d[idx].imm = imm_i_type[idx];
+          end
+        end
 
-      JAL: begin
-        DE_if_d.fu  = BRANCH;
-        DE_if_d.imm = imm_j_type;
-      end
+        OP_IMM_32: begin
+          DE_if_d[idx].fu     = ALU;
+          DE_if_d[idx].is_32b = '1;
 
-      JALR: begin
-        DE_if_d.fu  = BRANCH;
-        DE_if_d.imm = imm_i_type;
-      end
+          // TODO/NOTE: can probably get rid of this since ALU could just do this
+          if (funct3[idx] == 3'b001) ||  // SLL
+             (funct3[idx] == 3'b101)     // SRL/SRA
+          begin
+            DE_if_d[idx].uOP = {instr_i[idx][30], funct3[idx]};
+            DE_if_d[idx].imm = {15'b0, imm_i_type[idx][4:0]};
+          end else begin
+            DE_if_d[idx].imm = imm_i_type[idx];
+          end
+        end
+        
+        LOAD: begin
+          DE_if_d[idx].fu  = LOAD;
+          DE_if_d[idx].imm = imm_i_type[idx];
+        end
 
-      LUI: begin
-        // TODO
-      end
+        STORE: begin
+          DE_if_d[idx].fu  = STORE;
+          DE_if_d[idx].imm = imm_s_type[idx];
+        end
 
-      AUIPC: begin
-        DE_if_d.fu  = BRANCH;
-        DE_if_d.imm = imm_u_type;
-      end
+        BRANCH: begin
+          DE_if_d[idx].fu  = BRANCH;
+          DE_if_d[idx].imm = imm_b_type[idx];
+        end
 
-      SYSTEM: begin
-        DE_if_d.fu  = SYS;
-        DE_if_d.imm = imm_i_type;
-      end
+        JAL: begin
+          DE_if_d[idx].uOP = 4'h2;
+          DE_if_d[idx].fu  = BRANCH;
+          DE_if_d[idx].imm = imm_j_type[idx];
+        end
 
-      MISC_MEM: begin
-        // TODO
-      end
-    endcase
+        JALR: begin
+          DE_if_d[idx].uOP = 4'h3;
+          DE_if_d[idx].fu  = BRANCH;
+          DE_if_d[idx].imm = imm_i_type[idx];
+        end
+
+        LUI: begin
+          DE_if_d[idx].uOP = 4'b1_001;
+          DE_if_d[idx].fu  = ALU;
+          DE_if_d[idx].imm = imm_u_type[idx];
+        end
+
+        AUIPC: begin
+          DE_if_d[idx].uOP = 4'h8;
+          DE_if_d[idx].fu  = BRANCH;
+          DE_if_d[idx].imm = imm_u_type[idx];
+        end
+
+        SYSTEM: begin
+          DE_if_d[idx].fu  = SYS;
+          DE_if_d[idx].imm = imm_i_type[idx];
+        end
+
+        MISC_MEM: begin
+          // TODO
+        end
+      endcase
+    end
   end
 
   // ============================================

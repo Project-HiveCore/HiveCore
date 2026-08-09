@@ -14,11 +14,9 @@ parameter INT_REG_WIDTH         = 64;   // Register data width (XLEN = 64)
 parameter INT_MAX_IMM_WIDTH     = 20;   // Max width of an immediate value in an instruction
                                         // - Not all immediate values are this length (ex. I-type imm == 12-bits)
 
-// Shift Direction
-typedef enum logic {
-  LEFT  = 1'b0,
-  RIGHT = 1'b1
-} shift_dir_e;
+//=========================================
+//       Instruction Type Structs
+//=========================================
 
 // OPCODES
 localparam OP_W = 7;
@@ -46,33 +44,41 @@ typedef enum logic [OP_W-1:0] {
 } opcode_e;
 
 // FUNCTION 3
-typedef enum logic [2:0] {
-  ALU_ADD_SUB = 3'b000,
-  ALU_SLL     = 3'b001,
-  ALU_SLT     = 3'b010,
-  ALU_SLTU    = 3'b011,
-  ALU_XOR     = 3'b100,
-  ALU_SRL_SRA = 3'b101,
-  ALU_OR      = 3'b110,
-  ALU_AND     = 3'b111
-} alu_funct3_e;
+typedef enum logic [3:0] {
+  ALU_ADD   = 4'b0_000,
+  ALU_SLL   = 4'b0_001,
+  ALU_SLT   = 4'b0_010,
+  ALU_SLTU  = 4'b0_011,
+  ALU_XOR   = 4'b0_100,
+  ALU_SRL   = 4'b0_101,
+  ALU_OR    = 4'b0_110,
+  ALU_AND   = 4'b0_111,
+  ALU_SUB   = 4'b1_000,
+  ALU_SRA   = 4'b1_101,
+  ALU_LUI   = 4'b1_001
+} alu_uOP_e;
 
-typedef enum logic [2:0] {
-  LSU_LB_SB   = 3'h0,
-  LSU_LH_SH   = 3'h1,
-  LSU_LW_SW   = 3'h2,
-  LSU_LBU     = 3'h4,
-  LSU_LHU     = 3'h5
-} lsu_funct3_e;
+typedef enum logic [3:0] {
+  LSU_LB_SB = 4'h0,
+  LSU_LH_SH = 4'h1,
+  LSU_LW_SW = 4'h2,
+  LSU_LBU   = 4'h4,
+  LSU_LHU   = 4'h5
+} lsu_uOP_e;
 
-typedef enum logic [2:0] {
-  BEQ         = 3'h0,
-  BNE         = 3'h1,
-  BLT         = 3'h4,
-  BGE         = 3'h5,
-  BLTU        = 3'h6,
-  BGEU        = 3'h7
-} branch_funct3_e;
+typedef enum logic [3:0] {
+  BEQ       = 4'h0,
+  BNE       = 4'h1,
+  BLT       = 4'h4,
+  BGE       = 4'h5,
+  BLTU      = 4'h6,
+  BGEU      = 4'h7,
+
+  JAL       = 4'h2,
+  JALR      = 4'h3,
+
+  AUIPC     = 4'h8
+} branch_uOP_e;
 
 // Functional Unit Identifiers
 typedef enum logic [2:0] {
