@@ -35,7 +35,7 @@ module decode
   );
 
   // ============================================
-  //               Internal Signals            
+  //         Internal Signals / Modules            
   // ============================================
   // Stage Output Data 
   decode_execute_if_t [FETCH_WIDTH-1:0]           DE_if_d;
@@ -53,6 +53,26 @@ module decode
   logic [FETCH_WIDTH-1:0] [INT_MAX_IMM_WIDTH-1:0] imm_u_type;
   logic [FETCH_WIDTH-1:0] [INT_MAX_IMM_WIDTH-1:0] imm_j_type;
 
+  // Instantiate the interger register file and its signals
+  logic [FETCH_WIDTH-1:0] [INT_REG_WIDTH-1:0] rs1_rd_data;
+  logic [FETCH_WIDTH-1:0] [INT_REG_WIDTH-1:0] rs2_rd_data;
+
+  // TODO: fix port, addr, and reg sizing when moving to multiple fetch
+  int_regfile #(
+    .RD_PORTS(2),
+    .WR_PORTS(1),
+    .NUM_REGS(INT_REGS)
+  ) regfile (
+    .clk        (clk),
+    .rst_n      (rst_n),
+    .rd_addr_i  ({rs1[0], rs2[0]}),
+    .rd_data_i  ({rs1_rd_data[0], rs2_rd_data[0]}),
+
+    // TODO: get writeback working
+    .wr_valid_i (),
+    .wr_addr_i  (),
+    .wr_data_i  ()
+  );
 
   // ============================================
   //          Parse Instruction Fields         
@@ -103,9 +123,12 @@ module decode
   end
 
   // ==================================================
-  //    Generate control signals/imm based on OPCODE 
+  //        Assign the output stage next data
   // ==================================================
   always_comb begin
+    // ---------------------------------------------
+    // Generate control signals/imm based on OPCODE
+    // ---------------------------------------------
     for (int idx = 0; idx < FETCH_WIDTH; idx++) begin
       DE_if_d[idx].uOP    = { 1'b0, funct3[idx] };
       DE_if_d[idx].fu     = NONE;
@@ -202,9 +225,20 @@ module decode
           // TODO
         end
       endcase
+
+      // ------------------------------------------
+      //  Assign regfile reads to output interface
+      // ------------------------------------------
+      
+      // TODO: need to take into account forwarding/in-flight instructions
+      DE_if_d[idx].rs1_addr = rs1[idx];
+      DE_if_d[idx].rs1_data = rs1_rd_data[idx];
+
+      DE_if_d[idx].rs2_addr = rs2[idx];
+      DE_if_d[idx].rs2_data = rs2_rd_data[idx];
     end
   end
-
+  
   // ============================================
   //             Output Register Stage         
   // ============================================
