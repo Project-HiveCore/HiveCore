@@ -8,8 +8,8 @@ package core_pkg;
 parameter INSTR_WIDTH           = 32;   // Instruction width
 parameter MEM_ADDR_WIDTH        = 64;   // 64-bit address space 
 
-parameter INT_REGS              = 32;   // Number of integer registers
-parameter INT_REG_ADDR_WIDTH    = 5;    // Register address width
+parameter INT_REGS              = 32;   // Number of architected integer registers
+parameter INT_REG_ADDR_WIDTH    = 5;    // Architected register address width
 parameter INT_REG_WIDTH         = 64;   // Register data width (XLEN = 64)
 parameter INT_MAX_IMM_WIDTH     = 20;   // Max width of an immediate value in an instruction
                                         // - Not all immediate values are this length (ex. I-type imm == 12-bits)
@@ -91,6 +91,12 @@ typedef enum logic [2:0] {
   DIV,
   SYS
 } func_unit_e;
+
+//=========================================
+//       Reorder Buffer Definitons
+//=========================================
+parameter ROB_SIZE      = 64;
+parameter ROB_PTR_WIDTH = $clog2(ROB_SIZE); 
 
 endpackage
 `endif
