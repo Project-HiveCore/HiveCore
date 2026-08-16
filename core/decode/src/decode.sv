@@ -134,22 +134,26 @@ module decode
       DE_if_d[idx].fu     = NONE;
       DE_if_d[idx].imm    = '0;
       DE_if_d[idx].is_32b = '0;
+      DE_if_d[idx].en_wb  = '0;
 
       case (opcode)
         OP: begin
-          DE_if_d[idx].uOP = {instr_i[idx][30], funct3[idx]};
-          DE_if_d[idx].fu  = ALU;
+          DE_if_d[idx].uOP   = {instr_i[idx][30], funct3[idx]};
+          DE_if_d[idx].fu    = ALU;
+          DE_if_d[idx].en_wb = '1;
         end
 
         OP_32: begin
           DE_if_d[idx].uOP    = {instr_i[idx][30], funct3[idx]};
           DE_if_d[idx].fu     = ALU;
           DE_if_d[idx].is_32b = '1;
+          DE_if_d[idx].en_wb  = '1;
         end
 
         // I-type opcodes
         OP_IMM: begin
-          DE_if_d[idx].fu = ALU;
+          DE_if_d[idx].fu    = ALU;
+          DE_if_d[idx].en_wb = '1;
 
           // TODO/NOTE: can probably get rid of this since ALU could just do this
           if (funct3[idx] == 3'b001) ||  // SLL
@@ -165,6 +169,7 @@ module decode
         OP_IMM_32: begin
           DE_if_d[idx].fu     = ALU;
           DE_if_d[idx].is_32b = '1;
+          DE_if_d[idx].en_wb  = '1;
 
           // TODO/NOTE: can probably get rid of this since ALU could just do this
           if (funct3[idx] == 3'b001) ||  // SLL
@@ -178,13 +183,14 @@ module decode
         end
         
         LOAD: begin
-          DE_if_d[idx].fu  = LOAD;
-          DE_if_d[idx].imm = imm_i_type[idx];
+          DE_if_d[idx].fu    = LOAD;
+          DE_if_d[idx].imm   = imm_i_type[idx];
+          DE_if_d[idx].en_wb = '1;
         end
 
         STORE: begin
-          DE_if_d[idx].fu  = STORE;
-          DE_if_d[idx].imm = imm_s_type[idx];
+          DE_if_d[idx].fu    = STORE;
+          DE_if_d[idx].imm   = imm_s_type[idx];
         end
 
         BRANCH: begin
@@ -193,27 +199,31 @@ module decode
         end
 
         JAL: begin
-          DE_if_d[idx].uOP = 4'h2;
-          DE_if_d[idx].fu  = BRANCH;
-          DE_if_d[idx].imm = imm_j_type[idx];
+          DE_if_d[idx].uOP   = 4'h2;
+          DE_if_d[idx].fu    = BRANCH;
+          DE_if_d[idx].imm   = imm_j_type[idx];
+          DE_if_d[idx].en_wb = '1;
         end
 
         JALR: begin
-          DE_if_d[idx].uOP = 4'h3;
-          DE_if_d[idx].fu  = BRANCH;
-          DE_if_d[idx].imm = imm_i_type[idx];
+          DE_if_d[idx].uOP   = 4'h3;
+          DE_if_d[idx].fu    = BRANCH;
+          DE_if_d[idx].imm   = imm_i_type[idx];
+          DE_if_d[idx].en_wb = '1;
         end
 
         LUI: begin
-          DE_if_d[idx].uOP = 4'b1_001;
-          DE_if_d[idx].fu  = ALU;
-          DE_if_d[idx].imm = imm_u_type[idx];
+          DE_if_d[idx].uOP   = 4'b1_001;
+          DE_if_d[idx].fu    = ALU;
+          DE_if_d[idx].imm   = imm_u_type[idx];
+          DE_if_d[idx].en_wb = '1;
         end
 
         AUIPC: begin
-          DE_if_d[idx].uOP = 4'h8;
-          DE_if_d[idx].fu  = BRANCH;
-          DE_if_d[idx].imm = imm_u_type[idx];
+          DE_if_d[idx].uOP   = 4'h8;
+          DE_if_d[idx].fu    = BRANCH;
+          DE_if_d[idx].imm   = imm_u_type[idx];
+          DE_if_d[idx].en_wb = '1;
         end
 
         SYSTEM: begin
