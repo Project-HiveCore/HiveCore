@@ -13,7 +13,7 @@
 `define DECODE
 module decode
   import core_pkg::*;
-  import interface_struct_pkg::
+  import interface_struct_pkg::decode_execute_if_t;
   #(
     // ======= Parameters ========
     parameter FETCH_WIDTH = 1
@@ -25,33 +25,33 @@ module decode
 
     input  logic flush,
 
-    input  logic                         [FETCH_WIDTH-1:0] instr_valid_i,
-    input  logic [INSTR_WIDTH-1:0]       [FETCH_WIDTH-1:0] instr_i,
-    input  logic [MEM_ADDR_WIDTH-1:0]    [FETCH_WIDTH-1:0] instr_pc_i,
+    input  logic               [FETCH_WIDTH-1:0]                      instr_valid_i,
+    input  logic               [FETCH_WIDTH-1:0] [INSTR_WIDTH-1:0]    instr_i,
+    input  logic               [FETCH_WIDTH-1:0] [MEM_ADDR_WIDTH-1:0] instr_pc_i,
 
     // ========= Outputs =========
-    output logic                         [FETCH_WIDTH-1:0] instr_valid_o,
-    output decode_execute_if_t           [FETCH_WIDTH-1:0] DE_if_o;
+    output logic               [FETCH_WIDTH-1:0] instr_valid_o,
+    output decode_execute_if_t [FETCH_WIDTH-1:0] DE_if_o
   );
 
   // ============================================
   //               Internal Signals            
   // ============================================
   // Stage Output Data 
-  decode_execute_if_t           [FETCH_WIDTH-1:0] DE_if_d;
+  decode_execute_if_t [FETCH_WIDTH-1:0]           DE_if_d;
 
   // Instruction Fields
-  logic [6:0]                   [FETCH_WIDTH-1:0] opcode;
-  logic [2:0]                   [FETCH_WIDTH-1:0] funct3;
-  logic [7:0]                   [FETCH_WIDTH-1:0] funct7;
-  logic [4:0]                   [FETCH_WIDTH-1:0] rs1;
-  logic [4:0]                   [FETCH_WIDTH-1:0] rs2;
-  logic [4:0]                   [FETCH_WIDTH-1:0] rd;
-  logic [INT_MAX_IMM_WIDTH-1:0] [FETCH_WIDTH-1:0] imm_i_type;
-  logic [INT_MAX_IMM_WIDTH-1:0] [FETCH_WIDTH-1:0] imm_s_type;
-  logic [INT_MAX_IMM_WIDTH-1:0] [FETCH_WIDTH-1:0] imm_b_type;
-  logic [INT_MAX_IMM_WIDTH-1:0] [FETCH_WIDTH-1:0] imm_u_type;
-  logic [INT_MAX_IMM_WIDTH-1:0] [FETCH_WIDTH-1:0] imm_j_type;
+  logic [FETCH_WIDTH-1:0] [6:0]                   opcode;
+  logic [FETCH_WIDTH-1:0] [2:0]                   funct3;
+  logic [FETCH_WIDTH-1:0] [7:0]                   funct7;
+  logic [FETCH_WIDTH-1:0] [4:0]                   rs1;
+  logic [FETCH_WIDTH-1:0] [4:0]                   rs2;
+  logic [FETCH_WIDTH-1:0] [4:0]                   rd;
+  logic [FETCH_WIDTH-1:0] [INT_MAX_IMM_WIDTH-1:0] imm_i_type;
+  logic [FETCH_WIDTH-1:0] [INT_MAX_IMM_WIDTH-1:0] imm_s_type;
+  logic [FETCH_WIDTH-1:0] [INT_MAX_IMM_WIDTH-1:0] imm_b_type;
+  logic [FETCH_WIDTH-1:0] [INT_MAX_IMM_WIDTH-1:0] imm_u_type;
+  logic [FETCH_WIDTH-1:0] [INT_MAX_IMM_WIDTH-1:0] imm_j_type;
 
 
   // ============================================
