@@ -2,9 +2,13 @@
 
 A 64-bit RISC-V, out-of-order, superscalar CPU core.
 
+The goal of this project is to build a CPU which can run the Linux kernel on an FPGA, and eventually be submitted to tiny tapeout.
+
 ## Extensions
 
-**Planned:** M (Integer Mult/Div), F (Single-Precision FP), A (Atomic), D (Double-Precision FP)
+**Planned:** M (Integer Mult/Div), A (Atomic)
+
+**Future Work:** F (Single-Precision FP),  D (Double-Precision FP)
 
 **In-Progess:** I (Base Integer)
 
